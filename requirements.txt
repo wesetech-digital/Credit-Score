@@ -19,6 +19,7 @@ cycler==0.12.1
 debugpy==1.8.8
 decorator==5.1.1
 defusedxml==0.7.1
+et_xmlfile==2.0.0
 executing==2.1.0
 fastjsonschema==2.20.0
 fonttools==4.55.0
@@ -64,6 +65,7 @@ networkx==3.4.2
 notebook_shim==0.2.4
 numba==0.60.0
 numpy==2.0.2
+openpyxl==3.1.5
 overrides==7.7.0
 packaging==24.2
 pandas==2.2.3
