@@ -1,8 +1,4 @@
-Here’s a detailed README for setting up the environment, starting the server, hitting the endpoint, parsing the payload, and understanding the features and expected outputs:
-
----
-
-# FastAPI Loan Default Prediction Service
+# FastAPI Loan Default Prediction & Credit Scoring Service
 
 This FastAPI service allows users to submit loan data for prediction on whether a loan will default, using a pre-trained machine learning model pipeline. The service is built with **FastAPI**, **scikit-learn**, and **SHAP** for model explainability.
 
@@ -19,14 +15,14 @@ This FastAPI service allows users to submit loan data for prediction on whether 
 
 ### Prerequisites
 
-Make sure you have the following installed on your machine:
-1. Python 3.7+ (Preferably a virtual environment for isolation)
-2. Required Python packages: `fastapi`, `uvicorn`, `scikit-learn`, `shap`, `joblib`, `pydantic`, `pandas`, `loguru`
+Ensure that the following are installed on your machine:
+1. Python 3.12+ (It is recommended to use a virtual environment for isolation)
+2. The required Python packages listed in the `requirements.txt` file
 
-You can install the necessary packages using `pip`:
+To install the necessary packages, run:
 
 ```bash
-pip install fastapi uvicorn scikit-learn shap joblib pydantic pandas loguru
+pip install -r requirements.txt
 ```
 
 ### Load the Model Pipeline
@@ -56,8 +52,7 @@ joblib.dump(pipeline, 'pipelines/final_model_pipeline.pkl')
 ├── pipelines/
 │   └── final_model_pipeline.pkl
 ├── scripts/
-│   ├── DatetimeFeatureExtractor.py
-│   └── LabelEncoderTransformer.py
+│   └──transformers.py
 └── main.py      # The FastAPI app
 ```
 
@@ -79,6 +74,14 @@ Once the server is running, you can access the prediction endpoint at:
 ```
 POST http://127.0.0.1:8000/predict
 ```
+
+Additionally, FastAPI automatically generates interactive documentation for the API. You can view the documentation by visiting the following URL in your browser:
+
+```
+http://127.0.0.1:8000/docs
+```
+
+This will provide you with an interactive interface to test the endpoint directly from your browser.
 
 Use **Postman** or **cURL** to test the endpoint.
 
@@ -194,4 +197,4 @@ If an error occurs during prediction, the server will return an HTTP 500 status 
 
 ---
 
-This README provides a comprehensive guide to setting up and using the FastAPI Loan Default Prediction Service.
+This README provides a comprehensive guide to setting up and using the FastAPI Loan Default Prediction & Credit Scoring Service.
