@@ -1,64 +1,59 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from typing import Union
 import numpy as np
 import joblib
+import pandas as pd
+from loguru import logger
+from scripts import DatetimeFeatureExtractor, LabelEncoderTransformer
 
 # Load the full pipeline (preprocessing + model)
-pipeline = joblib.load('pipelines\pipeline_20241213_162715.pkl')
+pipeline = joblib.load(r'pipelines/final_model_pipeline.pkl')  # Use forward slashes for better compatibility
 
 # Create FastAPI instance
 app = FastAPI()
 
 # Define request data schema using Pydantic
 class InputData(BaseModel):
-    Lender_portion_to_be_repaid: float
-    Total_Amount_to_Repay: float
+    loan_type: str
     Total_Amount: float
+    Total_Amount_to_Repay: float
+    disbursement_date: str  # Accept as string for datetime transformations in the pipeline
+    due_date: str           # Accept as string for datetime transformations
+    duration: int
+    New_versus_Repeat: str
     Amount_Funded_By_Lender: float
-    customer_id: float
-    tbl_loan_id: float
-    loan_type_Type_1: float
-    duration: float
-    due_date_day: float
     Lender_portion_Funded: float
-    disbursement_date_day: float
-    due_date_month: float
-    lender_id: float
-    disbursement_date_month: float
-    disbursement_date_year: float
-    due_date_year: float
-    New_versus_Repeat: float
-    loan_type_Type_7: float
-    loan_type_Type_4: float
-    loan_type_Type_6: float
+    Lender_portion_to_be_repaid: float
 
 # Define response schema
 class PredictionResponse(BaseModel):
     prediction: int
     probability: float
 
-# Define a prediction endpoint
 @app.post("/predict", response_model=PredictionResponse)
 def predict(data: InputData):
-    print(data)
     try:
-        # Convert the incoming data into an array for prediction
-        input_array = np.array([[data.Lender_portion_to_be_repaid, data.Total_Amount_to_Repay, data.Total_Amount,
-                                 data.Amount_Funded_By_Lender, data.customer_id, data.tbl_loan_id, data.loan_type_Type_1,
-                                 data.duration, data.due_date_day, data.Lender_portion_Funded, data.disbursement_date_day,
-                                 data.due_date_month, data.lender_id, data.disbursement_date_month, data.disbursement_date_year,
-                                 data.due_date_year, data.New_versus_Repeat, data.loan_type_Type_7, data.loan_type_Type_4,
-                                 data.loan_type_Type_6]])
+        # Convert input to a dictionary and prepare for pipeline
+        input_dict = data.dict()
 
-        # Preprocess the data using the pipeline
-        new_data_preprocessed = pipeline.transform(input_array)
-        input(new_data_preprocessed)
-        # Make the prediction
-        prediction = loaded_model.predict(new_data_preprocessed)[0]
-        probability = max(loaded_model.predict_proba(new_data_preprocessed)[0])
+        # Convert to DataFrame (as expected by the pipeline)
+        input_df = pd.DataFrame([input_dict])
+
+        # Log incoming data for debugging
+        logger.info(f"Input Data: {input_df}")
+
+        # Preprocess the data and make predictions
+        prediction = pipeline.predict(input_df)
+        probability = max(pipeline.predict_proba(input_df)[0])
+
+        # Log the results
+        logger.info(f"Prediction: {prediction}, Probability: {probability}")
 
         # Return the prediction result
-        return PredictionResponse(prediction=int(prediction), probability=float(probability))
-    
+        return PredictionResponse(prediction=int(prediction[0]), probability=float(probability))
+
     except Exception as e:
+        # Log the error
+        logger.error(f"Error during prediction: {e}")
         raise HTTPException(status_code=500, detail=f"Error occurred: {str(e)}")
