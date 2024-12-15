@@ -9,16 +9,19 @@ class DatetimeFeatureExtractor(BaseEstimator, TransformerMixin):
         self.date_cols = date_cols
 
     def fit(self, X, y=None):
+        # No fitting needed for this transformer
         return self
 
     def transform(self, X):
         X = X.copy()
         for col in self.date_cols:
-            X[col] = pd.to_datetime(X[col], errors='coerce')
-            X[col + '_month'] = X[col].dt.month
-            X[col + '_day'] = X[col].dt.day
-            X[col + '_year'] = X[col].dt.year
-        return X.drop(columns=self.date_cols, errors='ignore')
+            X[col] = pd.to_datetime(X[col], errors='coerce')  # Convert to datetime, coerce invalid dates to NaT
+            # Extract year, month, and day
+            X[col + '_year'] = X[col].dt.year.fillna(0)  # Replace NaT years with 0
+            X[col + '_month'] = X[col].dt.month.fillna(0)  # Replace NaT months with 0
+            X[col + '_day'] = X[col].dt.day.fillna(0)  # Replace NaT days with 0
+        return X.drop(columns=self.date_cols, errors='ignore')  # Drop original date columns
+
 
 
 class LabelEncoderTransformer(BaseEstimator, TransformerMixin):

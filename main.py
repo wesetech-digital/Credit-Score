@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Union
-import numpy as np
+from sklearn.ensemble import IsolationForest
+import shap
 import joblib
 import pandas as pd
 from loguru import logger
@@ -26,34 +26,58 @@ class InputData(BaseModel):
     Lender_portion_Funded: float
     Lender_portion_to_be_repaid: float
 
-# Define response schema
 class PredictionResponse(BaseModel):
     prediction: int
     probability: float
+    confidence: float  # Confidence of the prediction
+    feature_contributions: dict[str, float]  # Feature importance values
+    model_version: str
+
 
 @app.post("/predict", response_model=PredictionResponse)
 def predict(data: InputData):
     try:
-        # Convert input to a dictionary and prepare for pipeline
+        # Convert input to a DataFrame
         input_dict = data.dict()
-
-        # Convert to DataFrame (as expected by the pipeline)
         input_df = pd.DataFrame([input_dict])
 
-        # Log incoming data for debugging
-        logger.info(f"Input Data: {input_df}")
+        # Log the input data types and sample
+        logger.info(f"Input Data Types: {input_df.dtypes}")
+        logger.info(f"Input Data Sample: {input_df.head()}")
+
+        # Validate numeric columns
+        num_cols = ["Total_Amount", "Total_Amount_to_Repay", "Amount_Funded_By_Lender", "Lender_portion_Funded", "Lender_portion_to_be_repaid"]
+        input_df[num_cols] = input_df[num_cols].apply(pd.to_numeric, errors='coerce').fillna(0)
+
+        # Log cleaned input data
+        logger.info(f"Cleaned Input Data: {input_df}")
 
         # Preprocess the data and make predictions
         prediction = pipeline.predict(input_df)
-        probability = max(pipeline.predict_proba(input_df)[0])
+        probabilities = pipeline.predict_proba(input_df)[0]
+        probability = max(probabilities)
+        confidence = max(probabilities) - sorted(probabilities)[-2]  # Difference between top 2 probabilities
 
-        # Log the results
-        logger.info(f"Prediction: {prediction}, Probability: {probability}")
+        # Feature contributions using model feature importances
+        feature_importances = pipeline.named_steps['classifier'].feature_importances_
+        feature_contributions = {
+            feature: round(importance, 4)  # Rounded to 4 decimal places
+            for feature, importance in zip(input_df.columns, feature_importances)
+        }
+
+        # Log the prediction results
+        logger.info(f"Prediction: {prediction}, Probability: {probability}, Confidence: {confidence}")
+        logger.info(f"Feature Contributions: {feature_contributions}")
 
         # Return the prediction result
-        return PredictionResponse(prediction=int(prediction[0]), probability=float(probability))
+        return PredictionResponse(
+            prediction=int(prediction[0]),
+            probability=float(probability),
+            confidence=float(confidence),
+            feature_contributions=feature_contributions,
+            model_version="v1.0.0"
+        )
 
     except Exception as e:
-        # Log the error
         logger.error(f"Error during prediction: {e}")
         raise HTTPException(status_code=500, detail=f"Error occurred: {str(e)}")
