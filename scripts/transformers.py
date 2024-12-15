@@ -20,6 +20,7 @@ class DatetimeFeatureExtractor(BaseEstimator, TransformerMixin):
             X[col + '_year'] = X[col].dt.year
         return X.drop(columns=self.date_cols, errors='ignore')
 
+
 class LabelEncoderTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, cat_cols):
         self.cat_cols = cat_cols
@@ -34,6 +35,19 @@ class LabelEncoderTransformer(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         X = X.copy()
+        unseen_labels = {}
+
         for col, le in self.encoders.items():
-            X[col] = le.transform(X[col])
+            # Find unseen labels
+            unseen = [x for x in X[col].unique() if x not in le.classes_]
+            if unseen:
+                unseen_labels[col] = unseen
+                print(f"Warning: Unseen labels found in column '{col}': {unseen}")
+
+            # Apply label encoding for known labels, and default to -1 for unseen labels
+            X[col] = X[col].apply(lambda x: le.transform([x])[0] if x in le.classes_ else -1)
+
+        if unseen_labels:
+            print(f"Unseen labels handled with default value -1: {unseen_labels}")
+
         return X
