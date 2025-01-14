@@ -59,6 +59,11 @@ class PredictionResponse(BaseModel):
     model_version: str
     input_data: dict
 
+
+class DeleteUserRequest(BaseModel):
+    username: str
+
+
 # Utility functions
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -80,7 +85,7 @@ def authenticate_user(db, username: str, password: str):
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    expire = datetime.now() + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -121,6 +126,29 @@ def register_user(user: UserCreate):
     }
     return {"message": f"User {user.username} registered successfully"}
 
+@app.post("/delete", status_code=204)
+def delete_user(
+    request: DeleteUserRequest,
+    current_user: User = Depends(get_current_user),  # For authentication and authorization
+):
+
+    # Fetch the user to be deleted
+    user_to_delete = fake_users_db.get(request.username)
+
+
+    if not user_to_delete:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # # Prevent the current user from deleting themselves
+    # if user_to_delete.get('username') == current_user.username:
+    #     raise HTTPException(status_code=400, detail="Cannot delete your own account")
+
+    # Delete the user
+    fake_users_db.delete(user_to_delete)
+    fake_users_db.commit()
+
+    return {"detail": f"User {request.username} successfully deleted"}
+
 @app.post("/token")
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = authenticate_user(fake_users_db, form_data.username, form_data.password)
@@ -152,7 +180,7 @@ def predict(data: InputData, current_user: User = Depends(get_current_user)):
     # Store the prediction and input data
     stored_predictions.append({
         "username": current_user.username,
-        "input_data": data.dict(),
+        "input_data": data.model_dump(),
         "prediction": prediction,
         "probability": probability,
     })
@@ -161,7 +189,7 @@ def predict(data: InputData, current_user: User = Depends(get_current_user)):
         prediction=prediction,
         probability=probability,
         model_version=model_version,
-        input_data=data.dict(),
+        input_data=data.model_dump(),
     )
 
 @app.get("/predictions")
@@ -170,3 +198,4 @@ def get_user_predictions(current_user: User = Depends(get_current_user)):
         record for record in stored_predictions if record["username"] == current_user.username
     ]
     return {"predictions": user_predictions}
+
