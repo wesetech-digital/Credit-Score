@@ -210,8 +210,8 @@ The model returns the following prediction output:
 
 ```json
 {
-  "prediction": 1,  // 1 = Default, 0 = No Default
-  "score": 120, //ranges from 1 - 800
+  "prediction": 0.67,  // 1 = Default, 0 = No Default
+  "score": 120, //ranges from 0 - 999
   "probability": 0.85,  // Probability of the prediction being correct
   "model_version": "v1.0.0"
 }

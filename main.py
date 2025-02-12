@@ -13,9 +13,19 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 def probability_to_score(probability: float) -> int:
+    """
+    Transforms a probability (0 to 1) into a score between 0 and 999.
+    A probability of 0 gives a score of 999, and a probability of 1 gives a score of 0.
+    
+    Args:
+        probability (float): Probability of default (0 <= probability <= 1)
+    
+    Returns:
+        int: Corresponding score (0 to 999)
+    """
     if not (0 <= probability <= 1):
         raise ValueError("Probability must be between 0 and 1.")
-    return int(800 - (probability * 799))
+    return int(999 - (probability * 999))
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
