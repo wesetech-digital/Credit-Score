@@ -8,9 +8,14 @@ from loguru import logger
 import pandas as pd
 
 # Secret key and algorithm for JWT
-SECRET_KEY = "your_secret_key_here"  # Replace with a secure key
+SECRET_KEY = "odhoudoosgoduhspivpiduodosvdonsdopi"  # Replace with a secure key
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+def probability_to_score(probability: float) -> int:
+    if not (0 <= probability <= 1):
+        raise ValueError("Probability must be between 0 and 1.")
+    return int(800 - (probability * 799))
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -66,6 +71,7 @@ class InputData(BaseModel):
 class PredictionResponse(BaseModel):
     prediction: int
     probability: float
+    score: int
     model_version: str
     input_data: dict
 
@@ -195,8 +201,12 @@ def predict(data: InputData, current_user: User = Depends(get_current_user)):
         "probability": probability,
     })
 
+        # Calculate score from probability
+    score = probability_to_score(probability)
+
     return PredictionResponse(
         prediction=prediction,
+        score=score,
         probability=probability,
         model_version=model_version,
         input_data=data.model_dump(),
